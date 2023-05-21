@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -43,18 +44,18 @@ public class Reader {
 				Workbook workbook = new XSSFWorkbook(file)) {
 
 			// Student
-			Sheet sheet = workbook.getSheetAt(1);
+			Sheet sheet = workbook.getSheetAt(0);
 			for (Row row : sheet) {
 				student_list.add(Student.convert_row_to_student(row));
 			}
 
 			// Company
-			sheet = workbook.getSheetAt(2);
+			sheet = workbook.getSheetAt(1);
 			for (Row row : sheet) {
 				company_list.add(Company.convert_row_to_company(row));
 			}
 
-			sheet = workbook.getSheetAt(3);
+			sheet = workbook.getSheetAt(2);
 			List<List<String>> matches = new ArrayList<>();
 			for (Row row : sheet) {
 				matches.add(convert_row_to_match(row));
@@ -80,24 +81,28 @@ public class Reader {
 		}
 	}
 
-	void write_plan_to_excel(List<List<Pair<Company, Student>>> plan, String sheet_name) throws IOException {
+	void write_plan_to_excel(List<List<Pair<Company, Student>>> plan, List<LocalTime> timeSlot_list,
+			String output_excel_file, String sheet_name) throws IOException {
 		System.out.println("WRITING PLAN TO FILE with sheet name: " + sheet_name);
 
-		try (FileOutputStream out = new FileOutputStream(
-				new File(System.getProperty("user.home") + File.separator + "Desktop" + File.separator + "plan.xlsx"));
+		try (FileOutputStream out = new FileOutputStream(new File(output_excel_file));
 				XSSFWorkbook workbook = new XSSFWorkbook()) {
 			XSSFSheet spreadsheet = workbook.createSheet(sheet_name);
 			int startRowOfTable = 0;
 
 			ArrayList<ArrayList<String>> data = new ArrayList<>();
-			ArrayList<String> title = new ArrayList<>();
-			title.add("Plan for " + sheet_name);
-			data.add(title);
+			// Title
+			ArrayList<String> heading = new ArrayList<>();
+			heading.add("Plan for " + sheet_name);
+			data.add(heading);
 			startRowOfTable++;
 
-			plan.forEach(row -> {
+			for (int timeSlot = 0; timeSlot < plan.size(); timeSlot++) {
+				List<Pair<Company, Student>> row = plan.get(timeSlot);
 				if (row != null) {
 					ArrayList<String> dataRow = new ArrayList<>();
+					dataRow.add(timeSlot_list.get(timeSlot).toString() + " - "
+							+ timeSlot_list.get(timeSlot).plusMinutes(45).toString());
 					row.forEach(pair -> {
 						if (pair != null) {
 							dataRow.add(pair.getFirst().getName());
@@ -106,7 +111,7 @@ public class Reader {
 					});
 					data.add(dataRow);
 				}
-			});
+			}
 
 			XSSFRow row;
 			int rowid = 0;
@@ -124,22 +129,27 @@ public class Reader {
 					int cellid = 0;
 					for (String obj : objectArr) {
 
-						if (cellid % 2 == 0) {
-							if (!colorMap.contains(obj)) {
-								colorMap.add(obj);
+						if (cellid == 0) {
+							Cell cell = row.createCell(cellid++);
+							cell.setCellValue(obj);
+						} else {
+							if (cellid % 2 == 1) {
+								if (!colorMap.contains(obj)) {
+									colorMap.add(obj);
+								}
+								tableStyle = workbook.createCellStyle();
+								tableStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+								tableStyle.setFillForegroundColor(
+										IndexedColors.fromInt(indexColor[colorMap.indexOf(obj)]).getIndex());
+								tableStyle.setBorderTop(BorderStyle.MEDIUM);
+								tableStyle.setBorderBottom(BorderStyle.MEDIUM);
+								tableStyle.setBorderLeft(BorderStyle.MEDIUM);
+								tableStyle.setBorderRight(BorderStyle.MEDIUM);
 							}
-							tableStyle = workbook.createCellStyle();
-							tableStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-							tableStyle.setFillForegroundColor(
-									IndexedColors.fromInt(indexColor[colorMap.indexOf(obj)]).getIndex());
-							tableStyle.setBorderTop(BorderStyle.MEDIUM);
-							tableStyle.setBorderBottom(BorderStyle.MEDIUM);
-							tableStyle.setBorderLeft(BorderStyle.MEDIUM);
-							tableStyle.setBorderRight(BorderStyle.MEDIUM);
+							Cell cell = row.createCell(cellid++);
+							cell.setCellValue(obj);
+							cell.setCellStyle(tableStyle);
 						}
-						Cell cell = row.createCell(cellid++);
-						cell.setCellValue(obj);
-						cell.setCellStyle(tableStyle);
 					}
 				}
 			}
@@ -164,6 +174,11 @@ public class Reader {
 		}
 	}
 
+	void create_student_letters(List<List<Pair<Company, Student>>> plan, List<LocalTime> timeSlot_list,
+			String output_folder, String input_word_template) throws IOException {
+
+	}
+
 	static List<String> convert_row_to_match(Row row) {
 		return Arrays.asList(row.getCell(2).getRichStringCellValue().getString().trim(),
 				row.getCell(0).getRichStringCellValue().getString(),
@@ -172,9 +187,11 @@ public class Reader {
 
 	static void pretty_print_plan(List<List<Pair<Company, Student>>> plan) { // Loop through all rows
 		System.out.println("PRINTING THE PLAN");
-		plan.forEach(row -> {
+
+		for (int timeSlot = 0; timeSlot < plan.size(); timeSlot++) {
+			List<Pair<Company, Student>> row = plan.get(timeSlot);
 			if (row != null) {
-				System.out.print("row : ");
+				System.out.print("timeSlot " + (timeSlot + 1) + " : ");
 				row.forEach(pair -> {
 					if (pair != null)
 						if (pair.getSecond() != null)
@@ -185,19 +202,20 @@ public class Reader {
 				});
 				System.out.println();
 			}
-		});
+		}
 		System.out.println();
 	}
 
 	static void pretty_print_company_distribution(List<List<Company>> plan) {
 		System.out.println("PRINTING COMPANY DISTRIBUTION");
-		plan.forEach(column -> {
-			System.out.print("block: [");
+		for (int timeSlot = 0; timeSlot < plan.size(); timeSlot++) {
+			List<Company> column = plan.get(timeSlot);
+			System.out.print("timeSlot " + (timeSlot + 1) + " : ");
 			column.forEach(comp -> {
 				System.out.print(comp.getName() + " ---- ");
 			});
 			System.out.println("]");
-		});
+		}
 	}
 
 	// this method is not used

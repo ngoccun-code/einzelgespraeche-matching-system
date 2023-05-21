@@ -23,7 +23,7 @@ public class CompanyDistributor {
 	}
 
 	private List<List<Company>> distribute_companies() {
-		System.out.println("			DISTRIBUTE COMPANIES OF " + date + "\n");
+		System.out.println("---------------DISTRIBUTE COMPANIES OF " + date + "---------------\n");
 		this.companies.sort((c1, c2) -> c2.matched_students.size() - c1.matched_students.size());
 		List<Integer> avaiable_entries = new ArrayList<>();
 		List<List<Company>> distribution = new ArrayList<>();

@@ -3,6 +3,8 @@ package ikom.ikom_einzelgespraeche;
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -15,18 +17,20 @@ public class Main {
 
 	public static void main(String[] args) {
 
+		// set input file
+		String[] input_path = { "src", "main", "java", "ikom", "input" };
+		String input_folder = String.join(File.separator, input_path) + File.separator;
+
+		// set output file
+		String[] output_path = { "src", "main", "java", "ikom", "output" };
+		String output_folder = String.join(File.separator, output_path) + File.separator;
+
 		// TODO: check for scan error
 		Scanner sc = new Scanner(System.in, "UTF-8"); // System.in is a standard input stream
-		System.out.print("Enter column length: ");
-		int COLUMN_LENGTH = sc.nextInt();
-		sc.nextLine(); // consume the line seperator
-
-		String input_excel_file = System.getProperty("user.home") + File.separator + "Desktop" + File.separator
-				+ "Einzelgesprächsteilnehmer_Bau23.xlsx";
 
 		Reader reader = null;
 		try {
-			reader = new Reader(input_excel_file);
+			reader = new Reader(input_folder + "input.xlsx");
 		} catch (IOException e) {
 			e.printStackTrace();
 			sc.close();
@@ -54,6 +58,29 @@ public class Main {
 			else {
 				try {
 					int date_index = Integer.parseInt(input.substring(0, 1)) - 1;
+
+					System.out.print("Enter column length: ");
+					int COLUMN_LENGTH = sc.nextInt();
+					sc.nextLine(); // consume the line seperator
+
+					List<LocalTime> timeSlot_list = new ArrayList<>();
+					System.out.println("Enter " + COLUMN_LENGTH + " time slots. For example: \"09:30 *ENTER*\"");
+
+					for (int i = 0; i < COLUMN_LENGTH; i++) {
+						boolean valid = false;
+						while (!valid)
+							try {
+								String input_ts = sc.next();
+								LocalTime ts = LocalTime.parse(input_ts, DateTimeFormatter.ofPattern("HH:mm"));
+								timeSlot_list.add(ts);
+								valid = true;
+							} catch (Exception e) {
+								System.out.println("Invalid time slot. Please enter a new one.");
+							}
+
+						System.out.println("current time slots are: " + timeSlot_list);
+					}
+
 					CompanyDistributor distributor = new CompanyDistributor(date_list.get(date_index),
 							reader.company_list, COLUMN_LENGTH);
 
@@ -73,7 +100,13 @@ public class Main {
 					if (!match.isPlan_created_is_ok()) {
 						System.out.println("UNABLE TO CREATE A NEW PLAN FOR THIS DISTRIBUTION");
 					} else {
-						reader.write_plan_to_excel(match.plan, simpleDateFormat.format(date_list.get(date_index))); // date_list.get(date_index)
+						reader.write_plan_to_excel(match.plan, timeSlot_list, output_folder + "plan.xlsx",
+								simpleDateFormat.format(date_list.get(date_index)));
+						// the resulted plan is: "match.plan"
+						reader.create_student_letters(match.plan, timeSlot_list,
+								output_folder + "studentLetters" + File.separator,
+								simpleDateFormat.format(date_list.get(date_index)));
+
 					}
 
 				} catch (Exception e) {
