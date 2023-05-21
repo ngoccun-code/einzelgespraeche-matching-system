@@ -74,12 +74,12 @@ public class Main {
 								LocalTime ts = LocalTime.parse(input_ts, DateTimeFormatter.ofPattern("HH:mm"));
 								timeSlot_list.add(ts);
 								valid = true;
+								System.out.println("current time slots are: " + timeSlot_list);
 							} catch (Exception e) {
 								System.out.println("Invalid time slot. Please enter a new one.");
 							}
-
-						System.out.println("current time slots are: " + timeSlot_list);
 					}
+					sc.nextLine(); // consume the line seperator
 
 					CompanyDistributor distributor = new CompanyDistributor(date_list.get(date_index),
 							reader.company_list, COLUMN_LENGTH);
@@ -110,6 +110,8 @@ public class Main {
 					}
 
 				} catch (Exception e) {
+					System.out.println(
+							"UNABLE TO CREATE A PLAN. PLEASE CHECK IF THE GIVEN PARAMETERS ARE COMPATIBLE WITH THE FIXED CONSTRAINTS OF THE PROGRAM!");
 					continue;
 				}
 

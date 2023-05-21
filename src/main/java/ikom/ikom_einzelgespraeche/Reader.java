@@ -210,7 +210,7 @@ public class Reader {
 		System.out.println("PRINTING COMPANY DISTRIBUTION");
 		for (int timeSlot = 0; timeSlot < plan.size(); timeSlot++) {
 			List<Company> column = plan.get(timeSlot);
-			System.out.print("timeSlot " + (timeSlot + 1) + " : ");
+			System.out.print("timeSlot " + (timeSlot + 1) + " : [");
 			column.forEach(comp -> {
 				System.out.print(comp.getName() + " ---- ");
 			});
