@@ -1,5 +1,11 @@
 package ikom.ikom_einzelgespraeche;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.poi.ss.usermodel.Row;
 
 class Student {
@@ -7,6 +13,7 @@ class Student {
 	String surname;
 	String email;
 	int phone_number;
+	Map<Company, LocalDateTime> matched_company = new HashMap<>();
 
 	static Student convert_row_to_student(Row row) {
 		return new Student(row.getCell(0).getRichStringCellValue().getString().trim(),
@@ -91,6 +98,14 @@ class Student {
 
 	public void setEmail(String email) {
 		this.email = email;
+	}
+
+	public Map<Company, LocalDateTime> getMatched_company() {
+		return matched_company;
+	}
+
+	public void setMatched_company(Map<Company, LocalDateTime> matched_company) {
+		this.matched_company = matched_company;
 	}
 
 }

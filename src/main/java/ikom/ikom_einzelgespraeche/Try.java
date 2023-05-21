@@ -1,6 +1,7 @@
 package ikom.ikom_einzelgespraeche;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 
 import org.apache.commons.math3.util.Pair;
@@ -12,9 +13,21 @@ import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.apache.poi.xwpf.usermodel.XWPFParagraph;
+import org.apache.poi.xwpf.usermodel.XWPFRun;
+import org.apache.poi.xwpf.usermodel.XWPFTable;
+import org.apache.poi.xwpf.usermodel.XWPFTableCell;
+import org.apache.poi.xwpf.usermodel.XWPFTableRow;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTHeight;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTrPr;
+
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -24,118 +37,86 @@ public class Try {
 
 	// any exceptions need to be caught
 	public static void main(String[] args) throws Exception {
-		write_correct();
-	}
+		String[] input_path = { "src", "main", "java", "ikom", "input" };
+		String input_folder = String.join(File.separator, input_path) + File.separator;
+		String[] output_path = { "src", "main", "java", "ikom", "output" };
+		String output_folder = String.join(File.separator, output_path) + File.separator + "studentLetters"
+				+ File.separator;
 
-	static void write_correct() throws IOException {
+		// System.out.println("WRITING STUDENT LETTERS");
 
-		XSSFWorkbook workbook = new XSSFWorkbook();
-		XSSFSheet sheet = workbook.createSheet("sheet1");
+		// for (int i = 0; i < data.size(); i++) {
 
-		XSSFRow row = sheet.createRow(1);
+		HashMap<String, String> rowData = new HashMap<>();
+		String studentName = "Anna";
+		rowData.put("StudentName", studentName);
+		rowData.put("MesseName", "IKOM 2023");
+		String cancelDeadline = "Dienstag, den 25. Januar um 11:00 Uhr";
+		rowData.put("AbsageFrist", cancelDeadline);
+		String contactPerson = "Bach Ngoc Doan";
+		rowData.put("AnsprechpartnerInfo", contactPerson);
 
-		// Background color
-		XSSFCellStyle style = workbook.createCellStyle();
-		style.setFillBackgroundColor(IndexedColors.BRIGHT_GREEN.getIndex());
-		style.setFillPattern(FillPatternType.DIAMONDS);
+		try (XWPFDocument templateDoc = new XWPFDocument(
+				new FileInputStream(input_folder + "Student_Bestätigung.docx"));
+				FileOutputStream out = new FileOutputStream(output_folder + File.separator + studentName + ".docx");) {
 
-		XSSFCell cell = row.createCell(1);
-		cell.setCellValue("welcome");
-		cell.setCellStyle(style);
-
-		// foreground color
-		style = workbook.createCellStyle();
-		style.setFillForegroundColor(IndexedColors.fromInt(1).getIndex());
-		style.setFillPattern(FillPatternType.FINE_DOTS);
-
-		cell = row.createCell(2);
-		cell.setCellValue("Geeks");
-		cell.setCellStyle(style);
-
-		FileOutputStream file = new FileOutputStream(
-				new File(System.getProperty("user.home") + File.separator + "Desktop" + File.separator + "plan.xlsx"));
-		workbook.write(file);
-		file.close();
-		System.out.println("Style Created");
-
-	}
-
-	static void write_try() throws IOException {
-		XSSFWorkbook workbook = new XSSFWorkbook();
-		XSSFSheet spreadsheet = workbook.createSheet(" Data ");
-
-		// This data needs to be written (Object[])
-		ArrayList<ArrayList<String>> data = new ArrayList<>();
-
-		ArrayList<String> dataRow1 = new ArrayList<>();
-		dataRow1.add("Anna Doan");
-		dataRow1.add("Company A");
-		dataRow1.add("Beta Doan");
-		dataRow1.add("Company B");
-		data.add(dataRow1);
-		ArrayList<String> dataRow2 = new ArrayList<>();
-		dataRow2.add("Delta Doan");
-		dataRow2.add("Company C");
-		data.add(dataRow2);
-
-		XSSFRow row;
-		int rowid = 0;
-		for (ArrayList<String> objectArr : data) {
-			row = spreadsheet.createRow(rowid++);
-			int cellid = 0;
-			for (String obj : objectArr) {
-				Cell cell = row.createCell(cellid++);
-				cell.setCellValue(obj);
-			}
-		}
-
-		// .xlsx is the format for Excel Sheets...
-		// writing the workbook into the file...
-		FileOutputStream out = new FileOutputStream(
-				new File(System.getProperty("user.home") + File.separator + "Desktop" + File.separator + "plan.xlsx"));
-
-		workbook.write(out);
-		out.close();
-	}
-
-	void write_plan_to_excel(List<List<Pair<Company, Student>>> plan, String sheet_name) throws IOException {
-		// try (FileOutputStream out = new FileOutputStream(new File(input_excel_file));
-		try (FileOutputStream out = new FileOutputStream(
-				new File(System.getProperty("user.home") + File.separator + "Desktop" + File.separator + "plan.xlsx"));
-				XSSFWorkbook workbook = new XSSFWorkbook()) {
-
-			XSSFSheet spreadsheet = workbook.createSheet(sheet_name);
-			ArrayList<ArrayList<String>> data = new ArrayList<>();
-
-			plan.forEach(row -> {
-				if (row != null) {
-					ArrayList<String> dataRow = new ArrayList<>();
-					row.forEach(pair -> {
-						if (pair != null) {
-							dataRow.add(pair.getFirst().getName());
-							dataRow.add(pair.getSecond().getName() + pair.getSecond().getSurname());
+			// Replace placeholders with corresponding values from the Excel row
+			for (XWPFParagraph paragraph : templateDoc.getParagraphs()) {
+				List<XWPFRun> runs = paragraph.getRuns();
+				if (runs != null) {
+					for (XWPFRun run : runs) {
+						String text = run.getText(0);
+						if (text != null) {
+							for (String key : rowData.keySet()) {
+								if (text.contains(key)) {
+									text = text.replace(key, rowData.get(key));
+									run.setText(text, 0);
+								}
+							}
 						}
-					});
-					data.add(dataRow);
-				}
-			});
-
-			XSSFRow row;
-			int rowid = 0;
-			for (ArrayList<String> objectArr : data) {
-				row = spreadsheet.createRow(rowid++);
-				int cellid = 0;
-				for (String obj : objectArr) {
-					Cell cell = row.createCell(cellid++);
-					cell.setCellValue(obj);
+					}
 				}
 			}
-			workbook.write(out);
 
-		} catch (FileNotFoundException e) {
-			System.err.println("cannot open output excel file ");
-		} catch (IOException e) {
-			e.printStackTrace();
+			// Map<Student, List<Company, LocalTime> >
+			List<List<String>> tableData = new ArrayList<>();
+			tableData.add(Arrays.asList("Tue", "10:00", "CompanyA"));
+			tableData.add(Arrays.asList("Wed", "11:00", "CompanyB"));
+			tableData.add(Arrays.asList("Wed", "14:00", "CompanyC"));
+
+			XWPFTable table = templateDoc.getTables().get(0);
+			// System.out.println(table.getRow(0).getCell(0).getText());
+			if (table == null) {
+				System.out.println("Table not found in the document.");
+				return;
+			}
+			// Check if the table has enough rows
+			int numRowsNeeded = tableData.size();
+			int numRowsPresent = table.getRows().size() - 1; // Subtracting header row
+			if (numRowsNeeded > numRowsPresent) {
+				int numRowsToAdd = numRowsNeeded - numRowsPresent;
+				for (int i = 0; i < numRowsToAdd; i++) {
+					XWPFTableRow newRow = table.createRow();
+					CTTrPr trPr = newRow.getCtRow().addNewTrPr();
+					CTHeight ctHeight = trPr.addNewTrHeight();
+					ctHeight.setVal(BigInteger.valueOf(500));
+				}
+			}
+			// Fill the table with data
+			List<XWPFTableRow> rows = table.getRows();
+			for (int i = 1; i <= numRowsNeeded; i++) {
+				XWPFTableRow row = rows.get(i);
+				List<String> row_Data = tableData.get(i - 1);
+				List<XWPFTableCell> cells = row.getTableCells();
+				for (int j = 0; j < cells.size(); j++) {
+					cells.get(j).setText(row_Data.get(j));
+				}
+			}
+
+			templateDoc.write(out);
+			System.out.println("DONE WRITING STUDENT LETTERS");
 		}
+		// }
+
 	}
 }

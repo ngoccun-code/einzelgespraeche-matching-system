@@ -1,14 +1,26 @@
 package ikom.ikom_einzelgespraeche;
 
 import java.io.File;
+import java.util.Date;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.math.BigInteger;
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -25,12 +37,23 @@ import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.apache.poi.xwpf.usermodel.XWPFParagraph;
+import org.apache.poi.xwpf.usermodel.XWPFRun;
+import org.apache.poi.xwpf.usermodel.XWPFTable;
+import org.apache.poi.xwpf.usermodel.XWPFTableCell;
+import org.apache.poi.xwpf.usermodel.XWPFTableRow;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTHeight;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTrPr;
 
 public class Reader {
 	List<Student> student_list;
 	List<Company> company_list;
 	String input_excel_file;
 	int[] indexColor = { 24, 26, 29, 41, 47, 49, 42, 44, 46, 48, 50, 10, 11, 12, 13, 14, 15, 22 };
+	SimpleDateFormat simpleDateFormat = new SimpleDateFormat("E, dd.MM.yyyy");
+	DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("E, dd.MM.yyyy");
+	DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
 
 	public Reader(String input_excel_file) throws IOException {
 		this.student_list = new ArrayList<>();
@@ -85,6 +108,14 @@ public class Reader {
 			String output_excel_file, String sheet_name) throws IOException {
 		System.out.println("WRITING PLAN TO FILE with sheet name: " + sheet_name);
 
+		Date date = null;
+		try {
+			date = this.simpleDateFormat.parse(sheet_name);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		LocalDate localDate = date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+
 		try (FileOutputStream out = new FileOutputStream(new File(output_excel_file));
 				XSSFWorkbook workbook = new XSSFWorkbook()) {
 			XSSFSheet spreadsheet = workbook.createSheet(sheet_name);
@@ -101,12 +132,18 @@ public class Reader {
 				List<Pair<Company, Student>> row = plan.get(timeSlot);
 				if (row != null) {
 					ArrayList<String> dataRow = new ArrayList<>();
-					dataRow.add(timeSlot_list.get(timeSlot).toString() + " - "
-							+ timeSlot_list.get(timeSlot).plusMinutes(45).toString());
+					LocalTime localTime = timeSlot_list.get(timeSlot);
+					LocalDateTime localDateTime = LocalDateTime.of(localDate, timeSlot_list.get(timeSlot));
+					dataRow.add(localTime.toString() + " - " + localTime.plusMinutes(45).toString());
+
 					row.forEach(pair -> {
 						if (pair != null) {
 							dataRow.add(pair.getFirst().getName());
 							dataRow.add(pair.getSecond().getName() + " " + pair.getSecond().getSurname());
+
+							// add info for the word letters
+							pair.getValue().getMatched_company().put(pair.getKey(), localDateTime);
+							pair.getKey().getMatched_plan().put(pair.getValue(), localTime);
 						}
 					});
 					data.add(dataRow);
@@ -175,7 +212,82 @@ public class Reader {
 	}
 
 	void create_student_letters(List<List<Pair<Company, Student>>> plan, List<LocalTime> timeSlot_list,
-			String output_folder, String input_word_template) throws IOException {
+			String output_folder, String date, String input_word_template) throws IOException {
+
+		for (Student student : this.student_list) {
+			HashMap<String, String> data_to_change = new HashMap<>();
+			String studentName = student.getName() + student.getSurname();
+			data_to_change.put("StudentName", studentName);
+			data_to_change.put("MesseName", "IKOM 2023"); //////////////////////////////////////
+			String cancelDeadline = "Dienstag, den 25. Januar um 11:00 Uhr"; //////////////////////////////////////
+			data_to_change.put("AbsageFrist", cancelDeadline);
+			String contactPerson = "Bach Ngoc Doan";
+			data_to_change.put("AnsprechpartnerInfo", contactPerson);
+
+			try (XWPFDocument templateDoc = new XWPFDocument(new FileInputStream(input_word_template));
+					FileOutputStream out = new FileOutputStream(
+							output_folder + File.separator + studentName + ".docx");) {
+
+				// Replace placeholders with corresponding values from the Excel row
+				for (XWPFParagraph paragraph : templateDoc.getParagraphs()) {
+					List<XWPFRun> runs = paragraph.getRuns();
+					if (runs != null) {
+						for (XWPFRun run : runs) {
+							String text = run.getText(0);
+							if (text != null) {
+								for (String key : data_to_change.keySet()) {
+									if (text.contains(key)) {
+										text = text.replace(key, data_to_change.get(key));
+										run.setText(text, 0);
+									}
+								}
+							}
+						}
+					}
+				}
+
+				XWPFTable table = templateDoc.getTables().get(0);
+				// System.out.println(table.getRow(0).getCell(0).getText());
+				if (table == null) {
+					System.out.println("Table not found in the document.");
+					return;
+				}
+
+				// Check if the table has enough rows
+				int numRowsNeeded = student.getMatched_company().size();
+				int numRowsPresent = table.getRows().size() - 1; // Subtracting header row
+				if (numRowsNeeded > numRowsPresent) {
+					int numRowsToAdd = numRowsNeeded - numRowsPresent;
+					for (int i = 0; i < numRowsToAdd; i++) {
+						XWPFTableRow newRow = table.createRow();
+						CTTrPr trPr = newRow.getCtRow().addNewTrPr();
+						CTHeight ctHeight = trPr.addNewTrHeight();
+						ctHeight.setVal(BigInteger.valueOf(500));
+					}
+				}
+				// Fill the table with data
+				List<XWPFTableRow> rows = table.getRows();
+
+				int rowCount = 1;
+				Map<Company, LocalDateTime> sortedMap = student.getMatched_company().entrySet().stream()
+						.sorted(Map.Entry.comparingByValue()).collect(Collectors.toMap(Map.Entry::getKey,
+								Map.Entry::getValue, (oldValue, newValue) -> oldValue, LinkedHashMap::new));
+
+				for (Entry<Company, LocalDateTime> entry : sortedMap.entrySet()) {
+					XWPFTableRow row = rows.get(rowCount);
+					List<XWPFTableCell> cells = row.getTableCells();
+					cells.get(0).setText(entry.getValue().toLocalDate().format(this.dateFormatter).toString());
+					cells.get(1).setText(entry.getValue().toLocalTime().format(this.timeFormatter).toString());
+					cells.get(2).setText(entry.getKey().getName());
+					rowCount++;
+				}
+
+				templateDoc.write(out);
+
+			}
+
+		}
+		System.out.println("DONE WRITING STUDENT LETTERS");
 
 	}
 

@@ -1,9 +1,13 @@
 package ikom.ikom_einzelgespraeche;
 
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.poi.ss.usermodel.Row;
 
@@ -11,6 +15,7 @@ public class Company {
 	String name;
 	Date fair_day;
 	List<Student> matched_students = new ArrayList<>();
+	Map<Student, LocalTime> matched_plan = new HashMap<>();
 
 	public Company(String name, Date fair_day) {
 		this.name = name;
@@ -66,6 +71,14 @@ public class Company {
 
 	public void setMatched_students(List<Student> matched_students) {
 		this.matched_students = matched_students;
+	}
+
+	public Map<Student, LocalTime> getMatched_plan() {
+		return matched_plan;
+	}
+
+	public void setMatched_plan(Map<Student, LocalTime> matched_plan) {
+		this.matched_plan = matched_plan;
 	}
 
 }
