@@ -40,7 +40,7 @@ public class Try {
 		String[] input_path = { "src", "main", "java", "ikom", "input" };
 		String input_folder = String.join(File.separator, input_path) + File.separator;
 		String[] output_path = { "src", "main", "java", "ikom", "output" };
-		String output_folder = String.join(File.separator, output_path) + File.separator + "studentLetters"
+		String output_folder = String.join(File.separator, output_path) + File.separator + "companyLetters"
 				+ File.separator;
 
 		// System.out.println("WRITING STUDENT LETTERS");
@@ -49,15 +49,13 @@ public class Try {
 
 		HashMap<String, String> rowData = new HashMap<>();
 		String studentName = "Anna";
-		rowData.put("StudentName", studentName);
 		rowData.put("MesseName", "IKOM 2023");
-		String cancelDeadline = "Dienstag, den 25. Januar um 11:00 Uhr";
-		rowData.put("AbsageFrist", cancelDeadline);
 		String contactPerson = "Bach Ngoc Doan";
 		rowData.put("AnsprechpartnerInfo", contactPerson);
+		String phoneNumber = "+49 17634355584";
+		rowData.put("HandyNummer", phoneNumber);
 
-		try (XWPFDocument templateDoc = new XWPFDocument(
-				new FileInputStream(input_folder + "Student_Bestätigung.docx"));
+		try (XWPFDocument templateDoc = new XWPFDocument(new FileInputStream(input_folder + "Firmenbrief.docx"));
 				FileOutputStream out = new FileOutputStream(output_folder + File.separator + studentName + ".docx");) {
 
 			// Replace placeholders with corresponding values from the Excel row
@@ -80,9 +78,9 @@ public class Try {
 
 			// Map<Student, List<Company, LocalTime> >
 			List<List<String>> tableData = new ArrayList<>();
-			tableData.add(Arrays.asList("Tue", "10:00", "CompanyA"));
-			tableData.add(Arrays.asList("Wed", "11:00", "CompanyB"));
-			tableData.add(Arrays.asList("Wed", "14:00", "CompanyC"));
+			tableData.add(Arrays.asList("10:00", "CompanyA"));
+			tableData.add(Arrays.asList("11:00", "CompanyB"));
+			tableData.add(Arrays.asList("14:00", "CompanyC"));
 
 			XWPFTable table = templateDoc.getTables().get(0);
 			// System.out.println(table.getRow(0).getCell(0).getText());
@@ -110,6 +108,7 @@ public class Try {
 				List<XWPFTableCell> cells = row.getTableCells();
 				for (int j = 0; j < cells.size(); j++) {
 					cells.get(j).setText(row_Data.get(j));
+					cells.get(j).getParagraphs().get(0).createRun().setFontSize(11);
 				}
 			}
 

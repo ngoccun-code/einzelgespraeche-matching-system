@@ -212,7 +212,7 @@ public class Reader {
 	}
 
 	void create_student_letters(List<List<Pair<Company, Student>>> plan, List<LocalTime> timeSlot_list,
-			String output_folder, String date, String input_word_template) throws IOException {
+			String output_folder, String input_word_template) throws IOException {
 
 		for (Student student : this.student_list) {
 			HashMap<String, String> data_to_change = new HashMap<>();
@@ -288,6 +288,81 @@ public class Reader {
 
 		}
 		System.out.println("DONE WRITING STUDENT LETTERS");
+
+	}
+
+	void create_company_letters(List<List<Pair<Company, Student>>> plan, List<LocalTime> timeSlot_list,
+			String output_folder, String input_word_template) throws IOException {
+
+		for (Company company : this.company_list) {
+			String companyName = company.getName();
+
+			HashMap<String, String> data_to_change = new HashMap<>();
+			data_to_change.put("MesseName", "IKOM 2023"); //////////////////////////////////////
+			String contactPerson = "Bach Ngoc Doan";
+			data_to_change.put("AnsprechpartnerInfo", contactPerson);
+			String phoneNumber = "+49 17634355584";
+			data_to_change.put("HandyNummer", phoneNumber);
+
+			try (XWPFDocument templateDoc = new XWPFDocument(new FileInputStream(input_word_template));
+					FileOutputStream out = new FileOutputStream(
+							output_folder + File.separator + companyName + ".docx");) {
+
+				// Replace placeholders with corresponding values from the Excel row
+				for (XWPFParagraph paragraph : templateDoc.getParagraphs()) {
+					List<XWPFRun> runs = paragraph.getRuns();
+					if (runs != null) {
+						for (XWPFRun run : runs) {
+							String text = run.getText(0);
+							if (text != null) {
+								for (String key : data_to_change.keySet()) {
+									if (text.contains(key)) {
+										text = text.replace(key, data_to_change.get(key));
+										run.setText(text, 0);
+									}
+								}
+							}
+						}
+					}
+				}
+
+				XWPFTable table = templateDoc.getTables().get(0);
+				if (table == null) {
+					System.out.println("Table not found in the document.");
+					return;
+				}
+
+				// Check if the table has enough rows
+				int numRowsNeeded = company.getMatched_plan().size();
+				int numRowsPresent = table.getRows().size() - 1; // Subtracting header row
+				if (numRowsNeeded > numRowsPresent) {
+					int numRowsToAdd = numRowsNeeded - numRowsPresent;
+					for (int i = 0; i < numRowsToAdd; i++) {
+						table.createRow();
+					}
+				}
+				// Fill the table with data
+				List<XWPFTableRow> rows = table.getRows();
+
+				int rowCount = 1;
+				Map<Student, LocalTime> sortedMap = company.getMatched_plan().entrySet().stream()
+						.sorted(Map.Entry.comparingByValue()).collect(Collectors.toMap(Map.Entry::getKey,
+								Map.Entry::getValue, (oldValue, newValue) -> oldValue, LinkedHashMap::new));
+
+				for (Entry<Student, LocalTime> entry : sortedMap.entrySet()) {
+					XWPFTableRow row = rows.get(rowCount);
+					List<XWPFTableCell> cells = row.getTableCells();
+					cells.get(0).setText(entry.getValue().format(this.timeFormatter).toString());
+					cells.get(1).setText(entry.getKey().getName() + " " + entry.getKey().getSurname());
+					rowCount++;
+				}
+
+				templateDoc.write(out);
+
+			}
+
+		}
+		System.out.println("DONE WRITING COMPANY LETTERS");
 
 	}
 

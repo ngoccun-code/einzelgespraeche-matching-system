@@ -105,8 +105,9 @@ public class Main {
 						// the resulted plan is: "match.plan"
 						reader.create_student_letters(match.plan, timeSlot_list,
 								output_folder + "studentLetters" + File.separator,
-								simpleDateFormat.format(date_list.get(date_index)),
 								input_folder + "Student_Bestätigung.docx");
+						reader.create_company_letters(match.plan, timeSlot_list,
+								output_folder + "companyLetters" + File.separator, input_folder + "Firmenbrief.docx");
 
 					}
 
