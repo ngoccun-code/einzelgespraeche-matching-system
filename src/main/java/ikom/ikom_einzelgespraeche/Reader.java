@@ -7,6 +7,9 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -106,8 +109,13 @@ public class Reader {
 	}
 
 	void write_plan_to_excel(List<List<Pair<Company, Student>>> plan, List<LocalTime> timeSlot_list,
-			String output_excel_file, String sheet_name) throws IOException {
-		System.out.println("WRITING PLAN TO FILE with sheet name: " + sheet_name);
+			String output_folder, String sheet_name) throws IOException {
+		try {
+			Path path = Paths.get(output_folder);
+			Files.createDirectories(path);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 
 		Date date = null;
 		try {
@@ -117,7 +125,8 @@ public class Reader {
 		}
 		LocalDate localDate = date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
 
-		try (FileOutputStream out = new FileOutputStream(new File(output_excel_file));
+		try (FileOutputStream out = new FileOutputStream(
+				new File(output_folder + File.separator + localDate.getDayOfWeek().toString() + ".xlsx"));
 				XSSFWorkbook workbook = new XSSFWorkbook()) {
 			XSSFSheet spreadsheet = workbook.createSheet(sheet_name);
 			int startRowOfTable = 0;
@@ -210,10 +219,18 @@ public class Reader {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		System.out.println("DONE WRITING PLAN TO FILE with sheet name: " + sheet_name);
 	}
 
 	void create_student_letters(List<List<Pair<Company, Student>>> plan, List<LocalTime> timeSlot_list,
 			String output_folder, String input_word_template) throws IOException {
+
+		try {
+			Path path = Paths.get(output_folder);
+			Files.createDirectories(path);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 
 		for (Student student : this.student_list) {
 			HashMap<String, String> data_to_change = new HashMap<>();
@@ -294,6 +311,13 @@ public class Reader {
 
 	void create_company_letters(List<List<Pair<Company, Student>>> plan, List<LocalTime> timeSlot_list,
 			String output_folder, String input_word_template) throws IOException {
+
+		try {
+			Path path = Paths.get(output_folder);
+			Files.createDirectories(path);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 
 		for (Company company : this.company_list) {
 			String companyName = company.getName();

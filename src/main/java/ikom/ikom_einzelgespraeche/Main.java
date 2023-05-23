@@ -100,7 +100,7 @@ public class Main {
 					if (!match.isPlan_created_is_ok()) {
 						System.out.println("UNABLE TO CREATE A NEW PLAN FOR THIS DISTRIBUTION");
 					} else {
-						reader.write_plan_to_excel(match.plan, timeSlot_list, output_folder + "plan.xlsx",
+						reader.write_plan_to_excel(match.plan, timeSlot_list, output_folder,
 								simpleDateFormat.format(date_list.get(date_index)));
 						// the resulted plan is: "match.plan"
 						reader.create_student_letters(match.plan, timeSlot_list,
@@ -112,8 +112,7 @@ public class Main {
 					}
 
 				} catch (Exception e) {
-					System.out.println(
-							"UNABLE TO CREATE A PLAN. PLEASE CHECK IF THE GIVEN PARAMETERS ARE COMPATIBLE WITH THE FIXED CONSTRAINTS OF THE PROGRAM!");
+					System.out.println("ERROR");
 					continue;
 				}
 
