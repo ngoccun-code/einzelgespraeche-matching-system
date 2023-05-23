@@ -48,6 +48,7 @@ import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTrPr;
 
 public class Reader {
 	List<Student> student_list;
+	List<Student> student_blackList = new ArrayList<>();
 	List<Company> company_list;
 	String input_excel_file;
 	int[] indexColor = { 24, 26, 29, 41, 47, 49, 42, 44, 46, 48, 50, 10, 11, 12, 13, 14, 15, 22 };
